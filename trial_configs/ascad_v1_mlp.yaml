@@ -6,10 +6,10 @@ model: mlp
 
 train:
   epochs: 200
-  patience: 20
+  patience: 50
 
 evaluation:
-  traces: 500
+  traces: 300
   rank_repeats: 10
 
 dataset:
@@ -17,4 +17,3 @@ dataset:
   params:
     filepath: data/ASCAD/ATMEGA_AES_v1_fixed_key/ASCAD.h5
     target_byte: 2
-

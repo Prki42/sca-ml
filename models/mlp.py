@@ -13,7 +13,6 @@ def build_mlp(
     act_fn = {
         "relu": nn.ReLU,
         "selu": nn.SELU,
-        "tanh": nn.Tanh,
         "leaky_relu": nn.LeakyReLU,
     }[activation]
 

@@ -1,5 +1,3 @@
-import sys
-
 import optuna
 import torch
 import yaml
@@ -52,6 +50,7 @@ def run_search(config_path: str):
             lr=lr,
             patience=train_cfg.get("patience", 20),
             device=device,
+            verbose=False,
         )
 
         curve = compute_rank_curve(
@@ -64,7 +63,7 @@ def run_search(config_path: str):
             eval_cfg.get("rank_repeats", 10),
             device,
         )
-        return curve.mean()
+        return curve.sum()
 
     study_name = study_cfg["name"]
     db_path = f"results/optuna/{study_name}.db"
@@ -81,7 +80,3 @@ def run_search(config_path: str):
     print(f"\nBest trial: rank={study.best_trial.value}")
     print(f"Best params: {study.best_trial.params}")
     return study
-
-
-if __name__ == "__main__":
-    run_search(sys.argv[1])

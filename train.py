@@ -43,6 +43,7 @@ def train_model(
     lr: float = 1e-3,
     patience: int = 10,
     device: str | None = None,
+    verbose: bool = True,
 ) -> nn.Module:
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -62,6 +63,7 @@ def train_model(
     criterion = nn.CrossEntropyLoss()
 
     best_val_loss = float("inf")
+    best_state = None
     wait = 0
 
     for epoch in range(epochs):
@@ -80,17 +82,23 @@ def train_model(
         with torch.no_grad():
             val_loss = criterion(model(val_x), val_y).item()
 
-        print(
-            f"  epoch {epoch + 1}/{epochs}  train={train_loss:.4f}  val={val_loss:.4f}"
-        )
+        if verbose:
+            print(
+                f"  epoch {epoch + 1}/{epochs}  train={train_loss:.4f}  val={val_loss:.4f}"
+            )
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            best_state = model.state_dict().copy()
             wait = 0
         else:
             wait += 1
             if wait >= patience:
-                print(f"  early stopping at epoch {epoch + 1}")
+                if verbose:
+                    print(f"  early stopping at epoch {epoch + 1}")
                 break
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
 
     return model
