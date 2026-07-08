@@ -36,6 +36,7 @@ def build_mlp(
 
 
 def mlp_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.Module:
+    """Build MLP with Optuna-sampled hyperparameters."""
     return build_mlp(
         input_dim,
         num_classes,

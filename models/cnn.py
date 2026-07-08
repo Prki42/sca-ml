@@ -40,7 +40,7 @@ def build_cnn(
     pool_fn = {"avg": nn.AvgPool1d, "max": nn.MaxPool1d}[pool_type]
 
     conv_layers: list[nn.Module] = []
-    in_channels = 1
+    in_channels = 1  # single-channel for 1D signal
     length = input_dim
     for i in range(n_conv):
         out_channels = n_filters * (2**i)
@@ -70,6 +70,7 @@ def build_cnn(
 
 
 def cnn_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.Module:
+    """Build CNN with Optuna-sampled hyperparameters."""
     return build_cnn(
         input_dim,
         num_classes,

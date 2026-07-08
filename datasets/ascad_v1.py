@@ -39,6 +39,8 @@ class ASCADv1FixedKey(SCADataset):
                 f["Profiling_traces/metadata"]["key"][0][self.target_byte]
             )
             profiling_traces = f["Profiling_traces/traces"]
+
+            # precompute normalization constants from profiling
             self._mean = np.mean(profiling_traces, axis=0).astype(np.float32)
             self._std = np.std(profiling_traces, axis=0).astype(np.float32) + 1e-8
 
@@ -55,6 +57,7 @@ class ASCADv1FixedKey(SCADataset):
         return self._profiling_key
 
     def leakage(self, plaintext: int, key_guess: int) -> int:
+        # S-box output: the intermediate value model predicts
         return int(AES_SBOX[plaintext ^ key_guess])
 
     def get_profiling(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -88,6 +91,7 @@ def compute_snr_ascad(
     label_fns: dict[str, Callable[[np.ndarray], np.ndarray]],
     chunk_size: int = 5000,
 ) -> dict[str, np.ndarray]:
+    """Chunked SNR on raw ASCAD HDF5."""
     with h5py.File(filepath, "r") as f:
         traces = f["traces"]
         metadata = f["metadata"]

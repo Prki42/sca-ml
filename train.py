@@ -75,7 +75,7 @@ def train_model(
             loss = criterion(model(xb), yb)
             loss.backward()
             optimizer.step()
-            train_loss += loss.item() * len(xb)
+            train_loss += loss.item() * len(xb)  # weighted by batch size
         train_loss /= len(train_ds)
 
         model.eval()
@@ -98,6 +98,7 @@ def train_model(
                     print(f"  early stopping at epoch {epoch + 1}")
                 break
 
+    # restore best previous state instead of returning the last state
     if best_state is not None:
         model.load_state_dict(best_state)
 

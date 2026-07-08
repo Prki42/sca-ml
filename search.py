@@ -53,6 +53,7 @@ def run_search(config_path: str):
             verbose=False,
         )
 
+        # area under rank curve as objective
         curve = compute_rank_curve(
             model,
             val_traces,

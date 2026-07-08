@@ -6,6 +6,7 @@ import torch.nn as nn
 from .mlp import mlp_from_trial
 from .cnn import cnn_from_trial
 
+# registry: maps config name -> trial builder function
 TRIAL_MODELS: dict[str, Callable[[optuna.Trial, int, int], nn.Module]] = {
     "mlp": mlp_from_trial,
     "cnn": cnn_from_trial

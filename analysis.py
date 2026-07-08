@@ -9,6 +9,8 @@ from matplotlib.axes import Axes
 
 @dataclass
 class SNRAccum:
+    """Statistics accumulator for SNR = Var(class means) / Mean(class variances)."""
+
     counts: np.ndarray
     sums: np.ndarray
     sum_sq: np.ndarray
@@ -31,6 +33,7 @@ class SNRAccum:
                 self.sum_sq[c] += (chunk[sel] ** 2).sum(axis=0)
 
     def finalize(self) -> np.ndarray:
+        """Compute SNR from accumulated statistics. Var computed via E[X^2] - E[X]^2"""
         valid = self.counts > 1
         means = self.sums[valid] / self.counts[valid, None]
         variances = self.sum_sq[valid] / self.counts[valid, None] - means**2
