@@ -18,7 +18,7 @@ class SCADataset(ABC):
         ...
 
     @abstractmethod
-    def get_profiling(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_profiling(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Returns (traces [N, D] float32, labels [N] int (0 to num_classes-1))."""
         ...
 

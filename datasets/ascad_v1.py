@@ -31,6 +31,12 @@ class ASCADv1FixedKey(SCADataset):
         self.target_byte = target_byte
         with h5py.File(filepath, "r") as f:
             self._input_dim = f["Profiling_traces/traces"].shape[1]
+            self._profiling_key = int(
+                f["Profiling_traces/metadata"]["key"][0][self.target_byte]
+            )
+            profiling_traces = f["Profiling_traces/traces"]
+            self._mean = np.mean(profiling_traces, axis=0).astype(np.float32)
+            self._std = np.std(profiling_traces, axis=0).astype(np.float32) + 1e-8
 
     @property
     def input_dim(self) -> int:
@@ -39,11 +45,22 @@ class ASCADv1FixedKey(SCADataset):
     def leakage(self, plaintext: int, key_guess: int) -> int:
         return int(AES_SBOX[plaintext ^ key_guess])
 
-    def get_profiling(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_profiling(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         with h5py.File(self.filepath, "r") as f:
             traces = np.array(f["Profiling_traces/traces"], dtype=np.float32)
             labels = np.array(f["Profiling_traces/labels"], dtype=np.int64)
-        return traces, labels
+            metadata = np.array(f["Profiling_traces/metadata"])
+
+        plaintexts = metadata["plaintext"][:, self.target_byte]
+
+        # Normalization
+        traces = (traces - self._mean) / self._std
+
+        return traces, labels, plaintexts
+
+    @property
+    def profiling_key(self) -> int:
+        return self._profiling_key
 
     def get_attack(self) -> tuple[np.ndarray, np.ndarray, int]:
         with h5py.File(self.filepath, "r") as f:
@@ -51,4 +68,8 @@ class ASCADv1FixedKey(SCADataset):
             metadata = np.array(f["Attack_traces/metadata"])
         plaintexts = metadata["plaintext"][:, self.target_byte]
         true_key = int(metadata["key"][0][self.target_byte])
+
+        # Normalization (use mean/std from profiling)
+        traces = (traces - self._mean) / self._std
+
         return traces, plaintexts, true_key
