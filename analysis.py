@@ -44,6 +44,7 @@ def plot_snr(
     for name, snr in snrs.items():
         normed = snr / (snr.max() + 1e-12)
         ax.plot(normed, label=name, alpha=0.8)
+    ax.set_xbound(xmin, xmax)
     ax.set_xlabel("Time sample")
     ax.set_ylabel("Normalized SNR")
     ax.legend()
