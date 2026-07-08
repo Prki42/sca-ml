@@ -1,7 +1,9 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import h5py
 import numpy as np
+
+from analysis import SNRAccum
 
 from .base import SCADataset
 
@@ -79,3 +81,26 @@ class ASCADv1FixedKey(SCADataset):
         traces = (traces - self._mean) / self._std
 
         return traces, plaintexts, true_key
+
+
+def compute_snr_ascad(
+    filepath: str,
+    label_fns: dict[str, Callable[[np.ndarray], np.ndarray]],
+    chunk_size: int = 5000,
+) -> dict[str, np.ndarray]:
+    with h5py.File(filepath, "r") as f:
+        traces = f["traces"]
+        metadata = f["metadata"]
+        n, d = traces.shape
+
+        accums = {name: SNRAccum.create(d) for name in label_fns}
+
+        for start in range(0, n, chunk_size):
+            end = min(start + chunk_size, n)
+            chunk = traces[start:end].astype(np.float64)
+            meta = metadata[start:end]
+
+            for name, fn in label_fns.items():
+                accums[name].update(chunk, fn(meta))
+
+    return {name: a.finalize() for name, a in accums.items()}
