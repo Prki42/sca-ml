@@ -1,17 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.19.4
-#   kernelspec:
-#     display_name: sca-ml
-#     language: python
-#     name: sca-ml
-# ---
-
 # %% [markdown]
 # ### Nalaženje relevantnog vremenskog intervala - Signal-to-noise ratio
 # U našem konkretnom projektu i sa našom konkretnom bazom, cilj je da se nađe vrednost _trećeg bajta_ ključa (ključ se inače sastoji od 16 bajtova). Originalna baza, iz koje je naša izvedena, se sastoji iz čak 100.000 trenutaka merenja. Dakle, bilo je potrebno suziti tu bazu na samo one trenutke (tj onaj vremenski interval) u okviru kog najviše figuriše ciljani bajt ključa. Ovde se javlja jasan problem u nalaženju tog vremenskog intervala. Za to ćemo se poslužiti merom SNR (odnos signala i šuma, engl. _signal-to-noise ratio_).

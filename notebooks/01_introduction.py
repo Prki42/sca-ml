@@ -1,17 +1,3 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.19.4
-#   kernelspec:
-#     display_name: sca-ml
-#     language: python
-#     name: sca-ml
-# ---
-
 # %% [markdown]
 # ### Uvod: Side-channel Analysis
 # Side-channel analysis (skraćeno SCA) je klasa kriptoanalitičkih metoda napada koja se bavi analizom fizičkih merenja nekog kriptografskog uređadja, najčešće vreme izvršavanja, potrošnje struje ili elektromagnetnog zračenja, da bi se dobila informacija o parametrima enkripcije, najpre o ključu koji se koristi za enkripciju. SCA napadi se mogu svrstati u dve grupe: profilišuće (profiling) i neprofilišuće (non-profiling). 
