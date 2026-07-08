@@ -1,3 +1,5 @@
+from typing import Optional
+
 import h5py
 import numpy as np
 
@@ -42,6 +44,14 @@ class ASCADv1FixedKey(SCADataset):
     def input_dim(self) -> int:
         return self._input_dim
 
+    @property
+    def fixed_profiling_key(self) -> bool:
+        return True
+
+    @property
+    def profiling_key(self) -> Optional[int]:
+        return self._profiling_key
+
     def leakage(self, plaintext: int, key_guess: int) -> int:
         return int(AES_SBOX[plaintext ^ key_guess])
 
@@ -57,10 +67,6 @@ class ASCADv1FixedKey(SCADataset):
         traces = (traces - self._mean) / self._std
 
         return traces, labels, plaintexts
-
-    @property
-    def profiling_key(self) -> int:
-        return self._profiling_key
 
     def get_attack(self) -> tuple[np.ndarray, np.ndarray, int]:
         with h5py.File(self.filepath, "r") as f:

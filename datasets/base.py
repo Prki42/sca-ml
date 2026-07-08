@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 
@@ -11,6 +12,18 @@ class SCADataset(ABC):
     @property
     def num_classes(self) -> int:
         return 256
+
+    @property
+    @abstractmethod
+    def fixed_profiling_key(self) -> bool:
+        """Whether all profiling traces share the same key."""
+        ...
+
+    @property
+    @abstractmethod
+    def profiling_key(self) -> Optional[int]:
+        """The fixed profiling key byte, or None for random-key datasets."""
+        ...
 
     @abstractmethod
     def leakage(self, plaintext: int, key_guess: int) -> int:
