@@ -44,6 +44,6 @@ def mlp_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.
         width=trial.suggest_categorical("width", [100, 200, 400, 600]),
         dropout=trial.suggest_float("dropout", 0.0, 0.5),
         activation=trial.suggest_categorical(
-            "activation", ["relu", "selu", "tanh", "leaky_relu"]
+            "activation", ["relu", "selu", "leaky_relu"]
         ),
     )

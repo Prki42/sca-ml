@@ -24,7 +24,7 @@ def build_cnn(
     n_filters: int,
     kernel_size: int,
     pool_size: int,
-    n_fc: int,
+    n_fc_layers: int,
     fc_width: int,
     dropout: float,
     activation: str = "relu",
@@ -58,7 +58,7 @@ def build_cnn(
     flat_dim = in_channels * length
 
     fc_layers: list[nn.Module] = []
-    for i in range(n_fc):
+    for i in range(n_fc_layers):
         in_features = flat_dim if i == 0 else fc_width
         fc_layers.append(nn.Linear(in_features, fc_width))
         fc_layers.append(act_fn())
@@ -78,11 +78,11 @@ def cnn_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.
         n_filters=trial.suggest_categorical("n_filters", [8, 16, 32, 64]),
         kernel_size=trial.suggest_categorical("kernel_size", [3, 5, 11, 21]),
         pool_size=trial.suggest_categorical("pool_size", [2, 4]),
-        n_fc=trial.suggest_int("n_fc_layers", 1, 3),
+        n_fc_layers=trial.suggest_int("n_fc_layers", 1, 3),
         fc_width=trial.suggest_categorical("fc_width", [100, 200, 400]),
         dropout=trial.suggest_float("dropout", 0.0, 0.5),
         activation=trial.suggest_categorical(
-            "activation", ["relu", "selu", "tanh", "leaky_relu"]
+            "activation", ["relu", "selu", "leaky_relu"]
         ),
         pool_type=trial.suggest_categorical("pool_type", ["avg", "max"]),
         conv_batchnorm=trial.suggest_categorical("conv_batchnorm", [True, False]),

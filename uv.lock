@@ -790,6 +790,7 @@ dependencies = [
     { name = "numpy" },
     { name = "optuna" },
     { name = "pyyaml" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -800,6 +801,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.5.0" },
     { name = "optuna", specifier = ">=4.0.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "tqdm", specifier = ">=4.68.3" },
 ]
 
 [[package]]

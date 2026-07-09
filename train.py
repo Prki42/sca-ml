@@ -1,7 +1,18 @@
+from dataclasses import dataclass
+
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
+from tqdm import trange
+
+
+@dataclass
+class TrainResult:
+    model: nn.Module
+    train_losses: list[float]
+    val_losses: list[float]
+    best_epoch: int
 
 
 def split_profiling(
@@ -32,6 +43,33 @@ def split_profiling(
     )
 
 
+def save_trained_model(
+    result: TrainResult, params: dict, train_params: dict, path: str
+):
+    torch.save(
+        {
+            "state_dict": result.model.state_dict(),
+            "params": params,
+            "train_params": train_params,
+            "train_losses": result.train_losses,
+            "val_losses": result.val_losses,
+            "best_epoch": result.best_epoch,
+        },
+        path,
+    )
+
+
+def load_trained_model(path: str, build_fn, device: str | None = None):
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    data = torch.load(path, map_location=device)
+    model = build_fn(**data["params"])
+    model.load_state_dict(data["state_dict"])
+    if device:
+        model.to(device)
+    return model, data
+
+
 def train_model(
     model: nn.Module,
     traces: np.ndarray,
@@ -44,7 +82,7 @@ def train_model(
     patience: int = 10,
     device: str | None = None,
     verbose: bool = True,
-) -> nn.Module:
+) -> TrainResult:
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
@@ -64,9 +102,14 @@ def train_model(
 
     best_val_loss = float("inf")
     best_state = None
+    best_epoch = 0
     wait = 0
 
-    for epoch in range(epochs):
+    train_losses: list[float] = []
+    val_losses: list[float] = []
+
+    pbar = trange(epochs, desc="Training", disable=not verbose)
+    for epoch in pbar:
         model.train()
         train_loss = 0.0
         for xb, yb in train_loader:
@@ -75,31 +118,30 @@ def train_model(
             loss = criterion(model(xb), yb)
             loss.backward()
             optimizer.step()
-            train_loss += loss.item() * len(xb)  # weighted by batch size
+            train_loss += loss.item() * len(xb)
         train_loss /= len(train_ds)
 
         model.eval()
         with torch.no_grad():
             val_loss = criterion(model(val_x), val_y).item()
 
-        if verbose:
-            print(
-                f"  epoch {epoch + 1}/{epochs}  train={train_loss:.4f}  val={val_loss:.4f}"
-            )
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
+
+        pbar.set_postfix(train=f"{train_loss:.4f}", val=f"{val_loss:.4f}")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_state = model.state_dict().copy()
+            best_epoch = epoch
             wait = 0
         else:
             wait += 1
             if wait >= patience:
-                if verbose:
-                    print(f"  early stopping at epoch {epoch + 1}")
+                pbar.write(f"  early stopping at epoch {epoch + 1}")
                 break
 
-    # restore best previous state instead of returning the last state
     if best_state is not None:
         model.load_state_dict(best_state)
 
-    return model
+    return TrainResult(model, train_losses, val_losses, best_epoch)

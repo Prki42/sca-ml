@@ -39,7 +39,7 @@ def run_search(config_path: str):
         lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
         batch_size = trial.suggest_categorical("batch_size", [64, 128, 256, 512])
 
-        model = train_model(
+        train_res = train_model(
             model,
             train_traces,
             train_labels,
@@ -55,7 +55,7 @@ def run_search(config_path: str):
 
         # area under rank curve as objective
         curve = compute_rank_curve(
-            model,
+            train_res.model,
             val_traces,
             val_plaintexts,
             profiling_key,
