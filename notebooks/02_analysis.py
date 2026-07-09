@@ -11,12 +11,12 @@ sys.path.insert(0, "..")
 # %load_ext autoreload
 # %autoreload 2
 
-# %%
+# %% jupyter={"source_hidden": true}
 # %matplotlib inline
 import matplotlib.pyplot as plt
 import numpy as np
 
-# %%
+# %% jupyter={"source_hidden": true}
 import analysis
 from datasets.ascad_v1 import ASCADv1FixedKey, AES_SBOX, compute_snr_ascad
 
@@ -52,4 +52,4 @@ ax = analysis.plot_snr(snrs, 45400, 48000, None)
 plt.show()
 
 # %% [markdown]
-# Na osnovu SNR analize možemo zaključiti koji vremenski interval je relevantan za vrednost koju hoćemo da izvučemo. Ovim znatno smanjujemo dimenziju podataka i dobijamo dataset koji možemo dalje koristiti direktno kao ulaz u klasifikatore. Autori ASCAD baze su već suzili originalna merenja iz `ATMega8515_raw_traces.h5` dataset-a na manji dataset koji sadrži segment relevantan za učenje i napdanje trećeg bajta ključa i taj dataset je `ASCAD.h5`.
+# Na osnovu SNR analize možemo zaključiti koji vremenski interval je relevantan za vrednost koju hoćemo da izvučemo. Ovim znatno smanjujemo dimenziju podataka i dobijamo dataset koji možemo dalje koristiti direktno kao ulaz u klasifikatore. Autori ASCAD baze su već suzili originalna merenja iz `ATMega8515_raw_traces.h5` dataset-a na manji dataset koji sadrži segment relevantan za napadanje trećeg bajta ključa i taj dataset je `ASCAD.h5`.

@@ -50,7 +50,6 @@ train_traces, train_labels, val_traces, val_labels, val_plaintexts = (
     split_profiling(profile_traces, profile_labels, profile_plaintexts)
 )
 attack_tr, attack_pt, key = ascad.get_attack()
-attack_tr, attack_pt, key = ascad.get_attack()
 
 # %% [markdown]
 # #### MLP
@@ -63,7 +62,7 @@ attack_tr, attack_pt, key = ascad.get_attack()
 # %%
 # Inicijalizacija i trening
 mlp_model = mlp.build_mlp(ascad.input_dim, ascad.num_classes, n_layers=3, width=600, dropout = 0.47187931041403586, activation="leaky_relu")
-mlp_model = train_model(model, train_traces, train_labels, val_traces, val_labels, epochs=200, batch_size=128, lr=8.830185072117689e-05, patience = 100)
+mlp_model = train_model(mlp_model, train_traces, train_labels, val_traces, val_labels, epochs=200, batch_size=128, lr=8.830185072117689e-05, patience = 100)
 
 # %%
 # Alternativno, učitaj iz fajla
@@ -81,6 +80,8 @@ plot_curve(mlp_curve)
 # {'n_conv_layers': 1, 'n_filters': 32, 'kernel_size': 3, 'pool_size': 2, 'n_fc_layers': 3, 'fc_width': 200, 'dropout': 0.4191105132000773, 'lr': 1.344787118591703e-05, 'batch_size': 256}
 # ```
 # Ispod se može naći kod za treniranje i evaluaciju tog modela:
+#
+# TODO: u međuvremeni je blago promenjena arhitektura pa ovi parametri ne sadrže sve - dodaj nove kada optuna završi
 
 # %%
 # Inicijalizacija i trening:
@@ -93,7 +94,7 @@ cnn_model = cnn.build_cnn(ascad.input_dim, ascad.num_classes,
         fc_width = 200,
         dropout = 0.4191105132000773
 )
-cnn_model = train_model(model, train_traces, train_labels, val_traces, val_labels, epochs=400, batch_size=256, lr=1.344787118591703e-05, patience = 70)
+cnn_model = train_model(cnn_model, train_traces, train_labels, val_traces, val_labels, epochs=400, batch_size=256, lr=1.344787118591703e-05, patience = 70)
 
 # %%
 # Alternativno, učitaj iz fajla
