@@ -21,9 +21,15 @@ import analysis
 from datasets.ascad_v1 import ASCADv1FixedKey, AES_SBOX, compute_snr_ascad
 
 # %%
-# Racuna SNR za izvnornu ASCAD bazu koja zauzima ~7GB sto moze potrajati koj minut
-# Konkretne vrednosti su izracunate unapred i date kao snr2.npy is snr4.npy (nisu još na gitu)
-# TODO DODAJ snr i PROMENI PUTANJU ZA SNR + GIT LFS?
+# Precomputed vrednosti za SNR dijagrame
+
+snrs = {
+    "snr2": np.load("../results/snr2.npy"),
+    "snr4": np.load("../results/snr4.npy")
+}
+
+# %%
+# Racunanje SNR za izvnornu ASCAD bazu koja zauzima ~7GB moze potrajati koj minut
 
 target_byte = 2
 snrs = compute_snr_ascad(
@@ -43,9 +49,6 @@ snrs = compute_snr_ascad(
         ),
     },
 )
-
-for name, snr in snrs.items():
-    np.save(name, snr)
 
 # %%
 ax = analysis.plot_snr(snrs, 45400, 48000, None)

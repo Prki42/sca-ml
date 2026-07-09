@@ -1,5 +1,5 @@
 # %% [markdown]
-# ## Modeli, evaluacija i traženje hiperparametara
+# ## Modeli i traženje hiperparametara
 #
 # Implementirane su dve klase arhitektura - potpuno povezane neuronske mreže (MLP) i konvolutivne mreže (CNN). Namera je bila da se arhitekture što većim delom parametrizuju i optimalne vrednosti hiperparametara traže pomoću [Optune](https://optuna.org/).
 #
@@ -7,4 +7,6 @@
 #
 # U `trial_configs/` direktorijumu se nalaze konfiguracioni `yaml` fajlovi koji definišu dodatne parametre pretrage koje se tiču evaluacije i treninga poput broja epoha, broja merenja koji koristimo pri određivanju rang krive i druge.
 #
-# TODO: svašta
+# U `results/models/` se nalaze neki istrenirani modeli (`.pt` fajlovi) zajedno sa svim parametrima arhitekture i treniga, kao i podacima o treniranju (train/val losses i best epoch).
+#
+# TODO: optuna trial grafici za prezentaciju
