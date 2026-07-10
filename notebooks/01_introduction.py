@@ -1,6 +1,6 @@
 # %% [markdown]
 # ### Uvod: Side-channel Analysis
-# Side-channel analysis (skraćeno SCA) je klasa kriptoanalitičkih metoda napada koja se bavi analizom fizičkih merenja nekog kriptografskog uređadja, najčešće vreme izvršavanja, potrošnje struje ili elektromagnetnog zračenja, da bi se dobila informacija o parametrima enkripcije, najpre o ključu koji se koristi za enkripciju. SCA napadi se mogu svrstati u dve grupe: profilišuće (profiling) i neprofilišuće (non-profiling). 
+# Side-channel analysis (skraćeno SCA) je klasa kriptoanalitičkih metoda napada koja se bavi analizom fizičkih merenja nekog kriptografskog uređadja, najčešće vreme izvršavanja, potrošnje struje ili elektromagnetnog zračenja, da bi se dobila informacija o parametrima enkripcije, najpre o ključu koji se koristi za enkripciju. SCA napadi se mogu svrstati u dve grupe: profilišuće (profiling) i neprofilišuće (non-profiling).
 #
 # Profilišući napadi se sastoje iz dvaju koraka: prvo, napadač ima pristup kopiji uređaja koji vrši enkripciju, i može na njemu da sprovodi gorenavedena fizička merenja (engl. leakage, ,,curenje"). U drugom koraku, napadač koristi dobijeno znanje na "ciljnom" uređaju, u pokušaju saznanja ključa koji se koristi za enkripciju na tom uređaju. Dakle, u pitanju je **problem klasifikacije**.
 #
@@ -10,7 +10,7 @@
 
 # %% [markdown]
 # ### Oznake i statističko definisanje problema
-# Sa $\vec{L}$ označavamo vektor merenja, prikupljenih u diskretnim trenutcima tokom određenog vremena. Suštinski, to je vremenska serija. Sa $K$ označavamo ključ (odnosno deo ključa) koji se koristi za enkripciju, a sa $P$ označavamo skup plaintext-a, odnosno njegov podskup određene dužine (kod nas jedan bajt). U profilišućim napadima, napadač, koristeći svoju kopiju uređaja, razvija model kojim za svaki mogući ključ $k \in K$ želi da aproksimira uslovnu verovatnoću $\vec{g}[k]:(\vec{l},p)\mapsto P\{K=k \mid (\vec{L},P)=(\vec{l},p)\}$ nekom ocenom $\hat{\vec{g}}[k]$.
+# Sa $\vec{L}$ označavamo vektor merenja, prikupljenih u diskretnim trenutcima tokom određenog vremena. Suštinski, to je vremenska serija. Sa $k^*$ označavamo ključ (odnosno deo ključa) koji se koristi za enkripciju, a sa $P$ označavamo plaintext, odnosno njegov podskup određene dužine (kod nas jedan bajt). U profilišućim napadima, napadač, koristeći svoju kopiju uređaja, razvija model kojim za svaki mogući ključ $k \in K$ želi da aproksimira uslovnu verovatnoću $\vec{g}[k]:(\vec{l},p)\mapsto P\{k^*=k \mid (\vec{L},P)=(\vec{l},p)\}$ nekom ocenom $\hat{\vec{g}}[k]$.
 #
 # Ključna ideja je da model ne posmatra ključ direktno - on kao ulaz dobija isključivo vektor merenja $\vec{l}$. Potrošnja struje uređaja zavisi od međuvrednosti koje se javljaju tokom izvršavanja algoritma, a ne od samog ključa u izolaciji. U prvoj rundi AES-a, uređaj za svaki bajt ključa računa $Sbox(p \oplus k)$, gde je $p$ poznati plaintext a $k$ nepoznati ključ. Ova operacija zavisi od oba parametra i uzrokuje merljive obrasce u potrošnji struje. Stoga model treniramo da na osnovu merenja predvidi vrednost ove posredne funkcije (koja uzima jednu od 256 mogućih vrednosti), a potom pri napadu za svaki poznati plaintext isprobavamo svih 256 kandidata za ključ i proveravamo koji od njih daje predviđanja najkonzistentnija sa modelom. To jest, tražimo $\vec{g}[z]:(\vec{l}, p) \mapsto P\{Z = f(p, K) \mid (\vec{L},P)=(\vec{l},p)\}$ gde je $Z$ međuvrednost koja se dobija funkcijom $f$ za dat plaintext $P$ i ključ $K$.
 #
@@ -39,7 +39,7 @@
 
 # %% [markdown]
 # ### Evaluacija
-# Prirodno okruženje za evaluaciju našeg modela je upravo okruženje u kojem napadamo novi uređaj, odnosno test skup je baza u kojoj je kljuć takođe konstantan. Ovde se ugleda važnost treniranja modela na samo jednom ključu, iako to na prvi pogled deluje neintuitivno, jer generalno trening skupovi treba da budu što raznovrsniji. Međutim, u našoj primeni nije tako - model koji treniramo suštinski treba da upamti obrasce koje vezuju neku međuvrednost i merenja, i u tom smislu "šum" od različitih ključeva ne bi nikako odgovarao.
+# Prirodno okruženje za evaluaciju našeg modela je upravo okruženje u kojem napadamo novi uređaj, odnosno test skup je baza u kojoj je kljuć takođe konstantan. Ovde se ugleda važnost treniranja modela na samo jednom ključu, iako to na prvi pogled deluje neintuitivno, jer generalno trening skupovi treba da budu što raznovrsniji. Međutim, u našoj primeni nije tako - model koji treniramo suštinski treba da upamti obrasce koje vezuju neku međuvrednost (koja može zavisiti i od ključa i od plaintext-a) i merenja, i u tom smislu "šum" od različitih ključeva ne bi nikako odgovarao.
 #
 # Najčešća mera performansi ovakvog modela je takozvana "rang funkcija". Do nje dolazimo na sasvim prirodan način, samo što ne posmatramo svih $N_a$ opservacija iz test skupa, već nekih $i$. Zbog monotonosti logaritamske funkcije, važi:
 # $$
@@ -51,8 +51,10 @@
 # $$
 # gde je $S$ tako zvana (nagomilana, kumulativna) _skor_ funkcija. Razlog zbog čega koristimo logaritam je dvostruki: kako je logaritam strogo rastuć, on neće promeniti ocenu maksimalne verodostojnosti (a ni poredak između predviđenih verovatnoća), a sa numeričke strane, množenje velikog broja predviđenih verovatnoća će dati veoma male brojeve, pa može doći do takozvanog "underflow-a".
 #
-# Najzad, pređimo na rang funkciju. Ako sa $k^*$ definišemo ključ korišćen u $\mathcal{D}_{attack}$, tada definišemo rang kao: 
+# Najzad, pređimo na rang funkciju. Ako sa $k^*$ definišemo ključ korišćen u $\mathcal{D}_{attack}$, tada definišemo rang kao:
 # $$ rank_i(k^*) = |\{k\in K \mid \hat{S_i}(k) > \hat{S_i}(k^*)\}| $$
 # Drugim rečima, to je broj ključeva čija je funkcija verodostojnosti (zajednička, na prvih $i$ opservacija) veća od funkcije verodostojnosti za pravi ključ. Jasno, mi želimo da rang pravog ključa $k^*$ bude što manji, i to što brže - dakle, da model na osnovu što manjeg broja merenja dođe što bliže pravom ključu.
 #
-# TODO: ocekivana rang funkcija
+# Da bismo dobili bolju ocenu, mi računamo ocenu **očekivanog ranga**, odnosno definišemo:
+# $$ RANK_i(k^*) = E(rank_i(k^*)) $$
+# gde očekivanje računamo kao uzoračku sredinu rangova na 10 disjunktnih podskupova veličine $i$.
