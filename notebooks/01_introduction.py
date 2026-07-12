@@ -1,12 +1,10 @@
 # %% [markdown]
-# ### Uvod: Side-channel Analysis
-# Side-channel analysis (skraćeno SCA) je klasa kriptoanalitičkih metoda napada koja se bavi analizom fizičkih merenja nekog kriptografskog uređadja, najčešće vreme izvršavanja, potrošnje struje ili elektromagnetnog zračenja, da bi se dobila informacija o parametrima enkripcije, najpre o ključu koji se koristi za enkripciju. SCA napadi se mogu svrstati u dve grupe: profilišuće (profiling) i neprofilišuće (non-profiling).
+# ## Side-channel Analysis
+# Side-channel analysis (skraćeno SCA) je klasa kriptoanalitičkih metoda napada koja se bavi analizom fizičkih merenja nekog kriptografskog uređaja, najčešće vreme izvršavanja, potrošnje struje ili elektromagnetnog zračenja, da bi se dobila informacija o parametrima enkripcije, najpre o ključu koji se koristi za enkripciju. SCA napadi se mogu svrstati u dve grupe: profilišuće (profiling) i neprofilišuće (non-profiling).
 #
 # Profilišući napadi se sastoje iz dvaju koraka: prvo, napadač ima pristup kopiji uređaja koji vrši enkripciju, i može na njemu da sprovodi gorenavedena fizička merenja (engl. leakage, ,,curenje"). U drugom koraku, napadač koristi dobijeno znanje na "ciljnom" uređaju, u pokušaju saznanja ključa koji se koristi za enkripciju na tom uređaju. Dakle, u pitanju je **problem klasifikacije**.
 #
 # Neprofilišući napadi su slabiji, jer napadač nema kopiju ciljnog uređaja, već samo direktan pristup samom tom uređaju. On može da vrši određene statističke analize da uspostavi neku korelaciju između curenja (merenja) i ciljne promenljive (ključa). Mi ćemo se u ovom projektu baviti isključivo profilišućim napadima, i stoga ćemo imati i skupove $\mathcal{D}_{profiling}$ i $\mathcal{D}_{attack}$, koji odgovaraju trening i test skupovima za naše modele. O njima će biti detaljnije rečeno docnije.
-#
-# TODO: OVDE NEŠTO O ASCADU I AESU
 
 # %% [markdown]
 # ### Oznake i statističko definisanje problema
@@ -39,7 +37,7 @@
 
 # %% [markdown]
 # ### Evaluacija
-# Prirodno okruženje za evaluaciju našeg modela je upravo okruženje u kojem napadamo novi uređaj, odnosno test skup je baza u kojoj je kljuć takođe konstantan. Ovde se ugleda važnost treniranja modela na samo jednom ključu, iako to na prvi pogled deluje neintuitivno, jer generalno trening skupovi treba da budu što raznovrsniji. Međutim, u našoj primeni nije tako - model koji treniramo suštinski treba da upamti obrasce koje vezuju neku međuvrednost (koja može zavisiti i od ključa i od plaintext-a) i merenja, i u tom smislu "šum" od različitih ključeva ne bi nikako odgovarao.
+# Prirodno okruženje za evaluaciju našeg modela je upravo okruženje u kojem napadamo novi uređaj, odnosno test skup je baza u kojoj je kljuć takođe konstantan. Ovde se ogleda važnost treniranja modela na samo jednom ključu, iako to na prvi pogled deluje neintuitivno, jer generalno trening skupovi treba da budu što raznovrsniji. Međutim, u našoj primeni nije tako - model koji treniramo suštinski treba da upamti obrasce koje vezuju neku međuvrednost (koja može zavisiti i od ključa i od plaintext-a) i merenja, i u tom smislu "šum" od različitih ključeva ne bi nikako odgovarao.
 #
 # Najčešća mera performansi ovakvog modela je takozvana "rang funkcija". Do nje dolazimo na sasvim prirodan način, samo što ne posmatramo svih $N_a$ opservacija iz test skupa, već nekih $i$. Zbog monotonosti logaritamske funkcije, važi:
 # $$
@@ -58,3 +56,19 @@
 # Da bismo dobili bolju ocenu, mi računamo ocenu **očekivanog ranga**, odnosno definišemo:
 # $$ RANK_i(k^*) = E(rank_i(k^*)) $$
 # gde očekivanje računamo kao uzoračku sredinu rangova na 10 disjunktnih podskupova veličine $i$.
+
+# %% [markdown]
+# ## ASCAD baza
+#
+# Baza na koju ćemo se fokusirati je ANSSI Side-Channel Analysis Database [(ASCAD)](https://eprint.iacr.org/2018/053.pdf) ali se ceo proces prenosi na bilo koju drugu sličnu bazu. U okviru ASCAD-a data su merenja potrošnje struje mikrokontrolera tokom vršenja AES-128 enkripcije. Implementacije AES-a koje su korišćene već koriste neke metode za zaštitu od side-channel analiza i u zavisnosti od toga koje preventivne mere su implementirane ASCAD se deli na dve verzije:
+# - `v1` - boolean masking
+# - `v2` - affine masking
+#
+# Takođe, `v1` ima dva glavna dataset-a: `fixed_key` i `variable-key`. Za generisanje prvog dataseta je **korišćen isti ključ** tokom svih merenih šifrovanja dok je za drugi na $33\%$ trace-eva koji su predviđeni za attack fazu (evaluaciju) korišćen konstantan ključ dok ostalih $66\%$ koristi slučajan ključ. `v2` pored toga što koristi bolju preventivnu meru takođe ima samo `variable-key` dataset. U okviru projekta ćemo se držati `fixed-key` dataseta pa koristimo samo `v1` varijantu ASCAD-a.
+
+# %% [markdown]
+# ### ATMEGA_AES_v1_fixed_key baza
+#
+# Originalna merenja se mogu naći u `ATMega8515_raw_traces.h5` dataset-u koji sadrži $60.000$ merenja _(trace-eva)_ a svako merenje predstavlja potrošnju struje u $100.000$ vremenskih momenata. Autori su suzili dataset na vremenski interval dužine 700 koji je relevantan za vršenje napada na treći bajt ključa. Analiza kojom se dolazi do tog opsega je pokazana u sledećoj svesci. Taj sužen dataset `ASCAD.h5` je interno podeljen na profiling i attack set koji deli raw dataset redom na $50.000$ i $10.000$ merenja.
+#
+# Kako se data implementacija AES-a izvršava u konstantom vremenu i merenja su uzimana počev od istog _trenutka_, kažemo da su merenja sinhronizovana. Sinhronizacija znatno olakšava problem ali je zato veoma jaka _pretpostavka_, pa je iz tog razloga na `ASCAD.h5` veštački dodata greška u vidu pomerenog početka snimanja za $\pm50$ ili $\pm100$ i time se dobili dataset-ovi `ASCAD_desync50.h5` i `ASCAD_desync100.h5`.

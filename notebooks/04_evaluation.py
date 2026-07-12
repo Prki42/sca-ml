@@ -25,7 +25,7 @@ from evaluate import compute_rank_curve
 def plot_rank_curves(curves):
     alpha = 1.0
     if len(curves) > 1:
-        alpha = 0.55
+        alpha = 0.7
     fig, ax = plt.subplots(figsize=(12,4))
     for c in curves:
         curve = c["data"]
@@ -69,7 +69,7 @@ attack_tr, attack_pt, key = ascad.get_attack()
 
 # %% [markdown]
 # #### MLP
-# Parametri za treniranje i hiperparametri MLP modela dobijnog korišćenjem Optune:
+# Parametri za treniranje i hiperparametri MLP modela dobijenog korišćenjem Optune:
 # ```
 # {
 #     "n_layers": 3,
@@ -112,12 +112,14 @@ mlp_trening = TrainResult(model = mlp_model, train_losses = mlp_data["train_loss
 
 # %%
 plot_losses(mlp_trening)
+plt.savefig("mlp_learn.png")
 plt.show()
 
 # %%
 # Evaluacija
-mlp_curve = compute_rank_curve(mlp_model, attack_tr, attack_pt, key, ascad.leakage, 300)
+mlp_curve = compute_rank_curve(mlp_model, attack_tr, attack_pt, key, ascad.leakage, 300, rank_repeats=100)
 plot_rank_curve(mlp_curve)
+plt.savefig("mlp_eval.png")
 plt.show()
 
 # %% [markdown]
@@ -125,37 +127,31 @@ plt.show()
 # Parametri za treniranje i hiperparametri CNN modela dobijenog korišćenjem Optune:
 # ```
 # {
-#     "n_conv_layers": 1,
-#     "n_filters": 64,
-#     "kernel_size": 5,
-#     "pool_size": 4,
-#     "n_fc_layers": 3,
-#     "fc_width": 100,
-#     "dropout": 0.18496080246135194,
-#     "activation": "selu",
-#     "pool_type": "avg",
-#     "conv_batchnorm": False,
-#     "lr": 0.0003500608182408922,
-#     "batch_size": 256,
+#     "input_dim": 700,
+#     "num_classes": 256,
+#     "n_filters": 4,
+#     "last_pool_type": "avg",
+#     "last_pool_size": 3,
+#     "last_kernel_size": 5,
+#     "n_fc_layers": 5,
+#     "fc_width": 15,
+#     "batch_size": 128,
+#     "lr": 0.001762272437084644,
 # }
 # ```
 # Ispod se može naći kod za treniranje i evaluaciju tog modela:
 
 # %%
 # Inicijalizacija i trening:
-cnn_model = cnn.build_cnn(
+cnn_model = cnn.build_cnn_ascadv1_desync50(
     ascad.input_dim,
     ascad.num_classes,
-    n_conv=1,
-    n_filters=64,
-    kernel_size=5,
-    pool_size=4,
-    n_fc_layers=3,
-    fc_width=100,
-    dropout=0.18496080246135194,
-    activation='selu',
-    pool_type="avg",
-    conv_batchnorm=False,
+    n_filters = 4,
+    last_pool_type = 'avg',
+    last_pool_size = 3,
+    last_kernel_size = 5,
+    n_fc_layers = 5,
+    fc_width = 15,
 )
 
 cnn_model = train_model(
@@ -165,14 +161,15 @@ cnn_model = train_model(
     val_traces,
     val_labels,
     epochs=200,
-    batch_size=256,
-    lr=0.0003500608182408922,
-    patience=70,
+    batch_size=128,
+    lr=0.001762272437084644,
+    patience=50,
+    warmup=50
 ).model
 
 # %%
 # Alternativno, učitaj iz fajla
-cnn_model, cnn_data = load_trained_model("../results/models/cnn_best.pt", cnn.build_cnn)
+cnn_model, cnn_data = load_trained_model("../results/models/cnn_ascadv1_best.pt", cnn.build_cnn_ascadv1_desync50)
 cnn_trening = TrainResult(model = cnn_model, train_losses = cnn_data["train_losses"], val_losses= cnn_data["val_losses"], best_epoch = cnn_data["best_epoch"])
 
 # %%
@@ -181,7 +178,7 @@ plt.show()
 
 # %%
 # Evaluacija
-cnn_curve = compute_rank_curve(cnn_model, attack_tr, attack_pt, key, ascad.leakage, 300)
+cnn_curve = compute_rank_curve(cnn_model, attack_tr, attack_pt, key, ascad.leakage, 300, rank_repeats=100)
 plot_rank_curve(cnn_curve)
 plt.show()
 
@@ -195,12 +192,54 @@ plot_rank_curves(
         {"data": cnn_curve, "name": "CNN"},
     ]
 )
+plt.savefig("cnn_vs_mlp_sync.png")
 plt.show()
 
 # %% [markdown]
 # Dobijeni modeli su bolji nego modeli u originalnom ASCAD radu.
 
 # %% [markdown]
-# TODO: za svrhe prezentacije dodati na grafik i modele iz pomenutog ASCAD rada
-#
-# TODO: za svrhe prezentacije dodati i ponasanje modela pri dodatoj desinhronizaciji
+# ### Evaluacija na desinhronizovanim podacima
+
+# %%
+ascad_desync = ASCADv1FixedKey("../data/ASCAD/ATMEGA_AES_v1_fixed_key/ASCAD_desync50.h5")
+attack_desync_tr, attack_desync_pt, key = ascad_desync.get_attack()
+
+# %%
+# Alternativno, učitaj iz fajla
+cnn_desync_model, cnn_desync_data = load_trained_model("../results/models/cnn_ascadv1_desync50_gem.pt", cnn.build_cnn_ascadv1_desync50)
+cnn_desync_trening = TrainResult(model = cnn_desync_model, train_losses = cnn_desync_data["train_losses"], val_losses= cnn_desync_data["val_losses"], best_epoch = cnn_desync_data["best_epoch"])
+
+# %%
+name2file: dict[str, str] = {"zaid": "../results/models/cnn_ascadv1_desync50_zaid.pt", "mi": "../results/models/cnn_ascadv1_desync50_gem.pt"}
+names = ["zaid", "mi"]
+
+# %%
+cnn_desync = {name: load_trained_model(name2file[name], cnn.build_cnn_ascadv1_desync50) for name in names}
+cnn_desync_models = {name: cnn_desync[name][0] for name in names}
+cnn_desync_trainings = {name: TrainResult(
+    model = cnn_desync_models[name],
+    train_losses = cnn_desync[name][1]["train_losses"],
+    val_losses= cnn_desync[name][1]["val_losses"],
+    best_epoch = cnn_desync[name][1]["best_epoch"]) for name in names}
+
+# %%
+plot_losses(cnn_desync_trainings["zaid"])
+plt.show()
+
+# %%
+plot_losses(cnn_desync_trainings["mi"])
+plt.savefig("cnn_mi_curve.png")
+plt.show()
+
+# %%
+# Mi vs Zaid
+plot_rank_curves([{"name": name, "data": compute_rank_curve(cnn_desync_models[name], attack_desync_tr, attack_desync_pt, key, ascad.leakage, 300, rank_repeats=50)} for name in names])
+plt.savefig("cnn_zaid_vs_mi_eval.png")
+plt.show()
+
+# %%
+# Mi vs Zaid na sync podacima
+plot_rank_curves([{"name": name, "data": compute_rank_curve(cnn_desync_models[name], attack_tr, attack_pt, key, ascad.leakage, 10000, rank_repeats=20)} for name in names])
+plt.savefig("cnn_zaid_vs_mi_hmm.png")
+plt.show()
