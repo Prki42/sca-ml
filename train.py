@@ -80,6 +80,7 @@ def train_model(
     batch_size: int = 256,
     lr: float = 1e-3,
     patience: int = 10,
+    warmup: int = 10,
     device: str | None = None,
     verbose: bool = True,
 ) -> TrainResult:
@@ -103,6 +104,7 @@ def train_model(
     best_val_loss = float("inf")
     best_state = None
     best_epoch = 0
+    current_epoch = 1
     wait = 0
 
     train_losses: list[float] = []
@@ -136,10 +138,11 @@ def train_model(
             best_epoch = epoch
             wait = 0
         else:
-            wait += 1
+            wait += 1 if current_epoch > warmup else wait
             if wait >= patience:
                 pbar.write(f"  early stopping at epoch {epoch + 1}")
                 break
+        current_epoch += 1
 
     if best_state is not None:
         model.load_state_dict(best_state)

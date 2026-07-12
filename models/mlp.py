@@ -29,13 +29,31 @@ def build_mlp(
 
     for m in model:
         if isinstance(m, nn.Linear):
-            nn.init.xavier_uniform_(m.weight)
-            nn.init.zeros_(m.bias)
+            if activation == "selu":
+                # LeCun intialiation
+                nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="linear")
+                nn.init.zeros_(m.bias)
+            else:
+                nn.init.kaiming_uniform_(m.weight, nonlinearity="relu")
+                nn.init.zeros_(m.bias)
 
     return model
 
 
 def mlp_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.Module:
+    return build_mlp(
+        input_dim,
+        num_classes,
+        n_layers=trial.suggest_int("n_layers", 2, 8),
+        width=trial.suggest_categorical("width", [400, 600, 800, 1000, 1500]),
+        dropout=trial.suggest_float("dropout", 0.0, 0.5),
+        activation=trial.suggest_categorical(
+            "activation", ["relu", "selu", "leaky_relu"]
+        ),
+    )
+
+
+def mlp_ascadv1_desync50_from_trial(trial: optuna.Trial, input_dim: int, num_classes: int) -> nn.Module:
     """Build MLP with Optuna-sampled hyperparameters."""
     return build_mlp(
         input_dim,

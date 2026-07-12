@@ -1,3 +1,4 @@
+import numpy as np
 import optuna
 import torch
 import yaml
@@ -8,7 +9,7 @@ from models import TRIAL_MODELS
 from train import split_profiling, train_model
 
 
-def run_search(config_path: str):
+def run_search(config_path: str, custom_trial: dict | None = None):
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
 
@@ -34,37 +35,46 @@ def run_search(config_path: str):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def objective(trial: optuna.Trial) -> float:
-        model = model_builder(trial, ds.input_dim, ds.num_classes)
-
         lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
         batch_size = trial.suggest_categorical("batch_size", [64, 128, 256, 512])
 
-        train_res = train_model(
-            model,
-            train_traces,
-            train_labels,
-            val_traces,
-            val_labels,
-            epochs=train_cfg.get("epochs", 200),
-            batch_size=batch_size,
-            lr=lr,
-            patience=train_cfg.get("patience", 20),
-            device=device,
-            verbose=False,
-        )
+        try:
+            # return average ranks for two trainings with preset seeds
+            rank_areas: list[int] = []
+            for seed in [42, 67]:
+                torch.manual_seed(seed)
+                model = model_builder(trial, ds.input_dim, ds.num_classes)
+                train_res = train_model(
+                    model,
+                    train_traces,
+                    train_labels,
+                    val_traces,
+                    val_labels,
+                    epochs=train_cfg.get("epochs", 200),
+                    batch_size=batch_size,
+                    lr=lr,
+                    patience=train_cfg.get("patience", 20),
+                    warmup=train_cfg.get("warmup", 20),
+                    device=device,
+                    verbose=False,
+                )
 
-        # area under rank curve as objective
-        curve = compute_rank_curve(
-            train_res.model,
-            val_traces,
-            val_plaintexts,
-            profiling_key,
-            ds.leakage,
-            eval_cfg.get("traces", 500),
-            eval_cfg.get("rank_repeats", 10),
-            device,
-        )
-        return curve.sum()
+                # area under rank curve as objective
+                curve = compute_rank_curve(
+                    train_res.model,
+                    val_traces,
+                    val_plaintexts,
+                    profiling_key,
+                    ds.leakage,
+                    eval_cfg.get("traces", 500),
+                    eval_cfg.get("rank_repeats", 10),
+                    device,
+                )
+                rank_areas.append(curve.sum())
+            return np.mean(rank_areas)
+        except RuntimeError as e:
+            print(f"  Trial {trial.number} crashed {e}")
+            return float("inf")
 
     study_name = study_cfg["name"]
     db_path = f"results/optuna/{study_name}.db"
@@ -76,7 +86,10 @@ def run_search(config_path: str):
         load_if_exists=True,
     )
 
-    study.optimize(objective, n_trials=study_cfg.get("trials", 50))
+    if custom_trial is not None:
+        study.enqueue_trial(custom_trial)
+
+    study.optimize(objective, n_trials=study_cfg.get("trials", 50), n_jobs=2)
 
     print(f"\nBest trial: rank={study.best_trial.value}")
     print(f"Best params: {study.best_trial.params}")

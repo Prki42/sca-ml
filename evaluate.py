@@ -22,31 +22,23 @@ def compute_rank_curve(
     rng = np.random.default_rng(42)
     n = min(max_traces, len(attack_traces))
 
-    rank_curve = np.zeros(n, dtype=np.int32)
+    model.eval()
+    with torch.no_grad():
+        x = torch.tensor(attack_traces, dtype=torch.float32, device=device)
+        log_probs = torch.log_softmax(model(x), dim=1).cpu().numpy()
+
+    # Precompute leakage table: (num_traces, 256)
+    leakage_table = np.array(
+        [[leakage(int(pt), k) for k in range(256)] for pt in attack_plaintexts]
+    ).astype(np.int64)
+
+    rank_curve = np.zeros(n, dtype=np.float64)
 
     for _ in range(rank_repeats):
-        test_indices = rng.choice(len(attack_traces), size=n, replace=False)
-        current_traces = attack_traces[test_indices]
-        current_plaintexts = attack_plaintexts[test_indices]
+        idx = rng.choice(len(attack_traces), size=n, replace=False)
+        scores = np.take_along_axis(log_probs[idx], leakage_table[idx], axis=1)
+        cumulative = np.cumsum(scores, axis=0)
+        true_scores = cumulative[:, true_key_byte]
+        rank_curve += np.sum(cumulative > true_scores[:, None], axis=1)
 
-        model.eval()
-        with torch.no_grad():
-            x = torch.tensor(current_traces, dtype=torch.float32, device=device)
-            # log_softmax for numerical stability (avoids log of small probabilities)
-            log_probs = torch.log_softmax(model(x), dim=1).cpu().numpy()
-
-        key_scores = np.zeros(256)
-        curr_rank_curve = np.zeros(n, dtype=np.int32)
-
-        # accumulate log-likelihood for each key candidate across traces
-        for i in range(n):
-            pt = int(current_plaintexts[i])
-            for candidate in range(256):
-                z = leakage(pt, candidate)
-                key_scores[candidate] += log_probs[i, z]
-            curr_rank_curve[i] = int(np.sum(key_scores > key_scores[true_key_byte]))
-
-        rank_curve += curr_rank_curve
-    rank_curve //= rank_repeats
-
-    return rank_curve
+    return (rank_curve / rank_repeats).astype(np.int32)

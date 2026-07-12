@@ -1,0 +1,21 @@
+study:
+  name: ascad_v1_desync50_cnn
+  trials: 20
+  
+model: cnn_ascadv1_desync50
+
+train:
+  epochs: 200
+  patience: 50
+  warmup: 50
+
+evaluation:
+  traces: 5000
+  rank_repeats: 10
+
+dataset:
+  name: ascad_v1
+  params:
+    filepath: data/ASCAD/ATMEGA_AES_v1_fixed_key/ASCAD_desync50.h5
+    target_byte: 2
+
